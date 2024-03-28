@@ -18,7 +18,9 @@ def split_meta_line(line, delimiter=' '):
 
     ###########################################################
     # Here is your code
-
+    speaker_id, gender, file_path = line.split(delimiter)
+    file_path: str
+    file_path = file_path[:-1]
     ###########################################################
 
     return speaker_id, gender, file_path
@@ -34,7 +36,9 @@ def preemphasis(signal, pre_emphasis=0.97):
 
     ###########################################################
     # Here is your code
-
+    prev_signal = np.zeros(signal.shape)
+    prev_signal[1:] = signal[:-1]
+    emphasized_signal = signal + pre_emphasis * prev_signal
     ###########################################################
 
     return emphasized_signal
@@ -65,7 +69,11 @@ def framing(emphasized_signal, sample_rate=16000, frame_size=0.025, frame_stride
 
     ###########################################################
     # Here is your code to compute frames
-
+    frames = np.empty((num_frames, frame_length))
+    for i in range(num_frames):
+        star_index = i * frame_step
+        stop_index = star_index + frame_length
+        frames[i] = pad_signal[star_index:stop_index]
     ###########################################################
 
     return frames
@@ -83,7 +91,7 @@ def power_spectrum(frames, NFFT=512):
 
     ###########################################################
     # Here is your code to compute pow_frames
-
+    pow_frames = mag_frames ** 2
     ###########################################################
 
     return pow_frames
@@ -104,7 +112,7 @@ def compute_fbank_filters(nfilt=40, sample_rate=16000, NFFT=512):
     ###########################################################
     # Here is your code to convert Convert Hz to Mel: 
     # high_freq -> high_freq_mel
-    
+    high_freq_mel = 1125 * np.log(1 + high_freq / 700)
     ###########################################################
 
     mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2) # equally spaced in mel scale
@@ -112,7 +120,7 @@ def compute_fbank_filters(nfilt=40, sample_rate=16000, NFFT=512):
     ###########################################################
     # Here is your code to convert Convert Mel to Hz: 
     # mel_points -> hz_points
-    
+    hz_points = 700 * (np.exp(mel_points / 1125) - 1)
     ###########################################################
 
     bin = np.floor((NFFT + 1) * hz_points / sample_rate)
@@ -141,7 +149,7 @@ def compute_fbanks_features(pow_frames, fbank):
     
     ###########################################################
     # Here is your code to compute filter_banks_features
-    
+    filter_banks_features = np.matmul(pow_frames, fbank.T)   
     ###########################################################
 
     filter_banks_features = np.where(filter_banks_features == 0, np.finfo(float).eps,
@@ -161,10 +169,22 @@ def compute_mfcc(filter_banks_features, num_ceps=20):
     
     ###########################################################
     # Here is your code to compute mfcc features
-    
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.fftpack.dct.html
+    # norm_factor = 1/2 * np.sqrt(1/ (num_ceps - 1))
+    # n_vect = np.arange(filter_banks_features.shape[0])
+    # y = np.empty((num_ceps))
+    # # DCT
+    # for k in range(num_ceps):
+    #     y[k] = (filter_banks_features[0] + (-1) ** k * filter_banks_features[-1]) * norm_factor \
+    #         + 2 * np.sum(filter_banks_features * np.cos((np.pi * k * n_vect) / (num_ceps - 1)))
+    # mfcc = dct(filter_banks_features, axis=-2, type=2, norm='ortho')[..., :num_ceps, :]
+    nframes, nfilt = filter_banks_features.shape
+    dct_res = dct(filter_banks_features.T, type=2, axis=0, norm="ortho", n=num_ceps)#[:num_ceps:]
+    # lifter = 1 + nfilt / 2.0 * np.sin(np.pi * np.arange(num_ceps) / nfilt)
+    # mfcc = lifter[:, np.newaxis] * dct_res
     ###########################################################
 
-    return mfcc
+    return dct_res
 
 def mvn_floating(features, LC, RC, unbiased=False):
     # Here you need to do mean variance normalization of the input features
