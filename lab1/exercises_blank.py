@@ -169,22 +169,13 @@ def compute_mfcc(filter_banks_features, num_ceps=20):
     
     ###########################################################
     # Here is your code to compute mfcc features
-    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.fftpack.dct.html
-    # norm_factor = 1/2 * np.sqrt(1/ (num_ceps - 1))
-    # n_vect = np.arange(filter_banks_features.shape[0])
-    # y = np.empty((num_ceps))
-    # # DCT
-    # for k in range(num_ceps):
-    #     y[k] = (filter_banks_features[0] + (-1) ** k * filter_banks_features[-1]) * norm_factor \
-    #         + 2 * np.sum(filter_banks_features * np.cos((np.pi * k * n_vect) / (num_ceps - 1)))
-    # mfcc = dct(filter_banks_features, axis=-2, type=2, norm='ortho')[..., :num_ceps, :]
     nframes, nfilt = filter_banks_features.shape
-    dct_res = dct(filter_banks_features.T, type=2, axis=0, norm="ortho", n=num_ceps)#[:num_ceps:]
-    # lifter = 1 + nfilt / 2.0 * np.sin(np.pi * np.arange(num_ceps) / nfilt)
-    # mfcc = lifter[:, np.newaxis] * dct_res
+    mfcc = dct(filter_banks_features, type=2, n=num_ceps, norm="ortho")
+    lifter = 1 + nfilt / 2.0 * np.sin(np.pi * np.arange(num_ceps) / nfilt)
+    mfcc = lifter* mfcc
     ###########################################################
 
-    return dct_res
+    return mfcc
 
 def mvn_floating(features, LC, RC, unbiased=False):
     # Here you need to do mean variance normalization of the input features
@@ -210,7 +201,8 @@ def mvn_floating(features, LC, RC, unbiased=False):
     
     ###########################################################
     # Here is your code to compute normalised features
-    
+    normalised_features = (features - f) / np.sqrt(s)
+    # normalised_features[s == 0] = 0
     ###########################################################
 
     normalised_features[s == 0] = 0
